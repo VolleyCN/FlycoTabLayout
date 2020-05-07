@@ -888,7 +888,6 @@ public class CommonTabLayout extends FrameLayout implements ValueAnimator.Animat
             float textWidth = mTextPaint.measureText(tv_tab_title.getText().toString());
             float textHeight = mTextPaint.descent() - mTextPaint.ascent();
             MarginLayoutParams lp = (MarginLayoutParams) tipView.getLayoutParams();
-
             float iconH = mIconHeight;
             float margin = 0;
             if (mIconVisible) {
@@ -897,15 +896,12 @@ public class CommonTabLayout extends FrameLayout implements ValueAnimator.Animat
                 }
                 margin = mIconMargin;
             }
-
+            lp.leftMargin = mTabWidth >= 0 ? (int) (mTabWidth / 2 + textWidth / 2 + dp2px(leftPadding)) : (int) (mTabPadding + textWidth + dp2px(leftPadding));
             if (mIconGravity == Gravity.TOP || mIconGravity == Gravity.BOTTOM) {
-                lp.leftMargin = dp2px(leftPadding);
                 lp.topMargin = mHeight > 0 ? (int) (mHeight - textHeight - iconH - margin) / 2 - dp2px(bottomPadding) : dp2px(bottomPadding);
             } else {
-                lp.leftMargin = dp2px(leftPadding);
                 lp.topMargin = mHeight > 0 ? (int) (mHeight - Math.max(textHeight, iconH)) / 2 - dp2px(bottomPadding) : dp2px(bottomPadding);
             }
-
             tipView.setLayoutParams(lp);
         }
     }
