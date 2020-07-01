@@ -6,14 +6,17 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Rect;
+import android.graphics.Shader;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Parcelable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.content.ContextCompat;
 import android.util.AttributeSet;
 import android.util.SparseArray;
 import android.util.TypedValue;
@@ -102,7 +105,7 @@ public class CommonTabLayout extends FrameLayout implements ValueAnimator.Animat
     private float mTextsize;
     private float mTextUnselectSize;
     private int mTextSelectColor;
-    private int mTextUnselectColor;
+    private int mTextUnSelectColor;
     private int mTextBold;
     private boolean mTextAllCaps;
 
@@ -124,6 +127,10 @@ public class CommonTabLayout extends FrameLayout implements ValueAnimator.Animat
     private OvershootInterpolator mInterpolator = new OvershootInterpolator(1.5f);
 
     private FragmentChangeManager mFragmentChangeManager;
+    private int mTextSelectColorStart;
+    private int mTextSelectColorEnd;
+    private int mTextUnSelectColorEnd;
+    private int mTextUnSelectColorStart;
 
     public CommonTabLayout(Context context) {
         this(context, null, 0);
@@ -191,7 +198,7 @@ public class CommonTabLayout extends FrameLayout implements ValueAnimator.Animat
         mTextsize = ta.getDimension(R.styleable.CommonTabLayout_tl_textsize, sp2px(13f));
         mTextUnselectSize = ta.getDimension(R.styleable.CommonTabLayout_tl_textUnselectSize, sp2px(13f));
         mTextSelectColor = ta.getColor(R.styleable.CommonTabLayout_tl_textSelectColor, Color.parseColor("#ffffff"));
-        mTextUnselectColor = ta.getColor(R.styleable.CommonTabLayout_tl_textUnselectColor, Color.parseColor("#AAffffff"));
+        mTextUnSelectColor = ta.getColor(R.styleable.CommonTabLayout_tl_textUnselectColor, Color.parseColor("#AAffffff"));
         mTextBold = ta.getInt(R.styleable.CommonTabLayout_tl_textBold, TEXT_BOLD_NONE);
         mTextAllCaps = ta.getBoolean(R.styleable.CommonTabLayout_tl_textAllCaps, false);
 
@@ -293,13 +300,10 @@ public class CommonTabLayout extends FrameLayout implements ValueAnimator.Animat
             View tabView = mTabsContainer.getChildAt(i);
             tabView.setPadding((int) mTabPadding, 0, (int) mTabPadding, 0);
             TextView tv_tab_title = (TextView) tabView.findViewById(R.id.tv_tab_title);
-            tv_tab_title.setTextColor(i == mCurrentTab ? mTextSelectColor : mTextUnselectColor);
-            tv_tab_title.setTextSize(TypedValue.COMPLEX_UNIT_PX, i == mCurrentTab ? mTextsize : mTextUnselectSize);
-//            tv_tab_title.setPadding((int) mTabPadding, 0, (int) mTabPadding, 0);
+            handlerTabTextColorSize(tv_tab_title, i == mCurrentTab);
             if (mTextAllCaps) {
                 tv_tab_title.setText(tv_tab_title.getText().toString().toUpperCase());
             }
-
             if (mTextBold == TEXT_BOLD_BOTH) {
                 tv_tab_title.getPaint().setFakeBoldText(true);
             } else if (mTextBold == TEXT_BOLD_NONE) {
@@ -331,13 +335,45 @@ public class CommonTabLayout extends FrameLayout implements ValueAnimator.Animat
         }
     }
 
+
+    private void handlerTabTextColorSize(TextView tv_tab_title, boolean isSelect) {
+        if (isSelect) {
+            if (mTextSelectColorStart != 0 && mTextSelectColorEnd != 0) {
+                textColorLinearGradient(tv_tab_title, mTextSelectColorStart, mTextSelectColorEnd);
+            } else {
+                tv_tab_title.setTextColor(mTextSelectColor);
+            }
+        } else {
+            if (mTextUnSelectColorStart != 0 && mTextUnSelectColorEnd != 0) {
+                textColorLinearGradient(tv_tab_title, mTextUnSelectColorStart, mTextUnSelectColorEnd);
+            } else {
+                tv_tab_title.setTextColor(mTextUnSelectColor);
+            }
+        }
+        tv_tab_title.setTextSize(TypedValue.COMPLEX_UNIT_PX, isSelect ? mTextsize : mTextUnselectSize);
+    }
+
+
+    public void textColorLinearGradient(TextView textView, int colorStart, int colorEnd) {
+        try {
+            LinearGradient mLinearGradient = new LinearGradient(0, 0,
+                    textView.getPaint().getTextSize() * textView.getText().length(), 0,
+                    ContextCompat.getColor(textView.getContext(), colorStart),
+                    ContextCompat.getColor(textView.getContext(), colorEnd), Shader.TileMode.CLAMP);
+            textView.getPaint().setShader(mLinearGradient);
+            textView.invalidate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
     private void updateTabSelection(int position) {
         for (int i = 0; i < mTabCount; ++i) {
             View tabView = mTabsContainer.getChildAt(i);
             final boolean isSelect = i == position;
             TextView tab_title = (TextView) tabView.findViewById(R.id.tv_tab_title);
-            tab_title.setTextColor(isSelect ? mTextSelectColor : mTextUnselectColor);
-            tab_title.setTextSize(TypedValue.COMPLEX_UNIT_PX, i == mCurrentTab ? mTextsize : mTextUnselectSize);
+            handlerTabTextColorSize(tab_title, isSelect);
             ImageView iv_tab_icon = (ImageView) tabView.findViewById(R.id.iv_tab_icon);
             CustomTabEntity tabEntity = mTabEntitys.get(i);
             iv_tab_icon.setImageResource(isSelect ? tabEntity.getTabSelectedIcon() : tabEntity.getTabUnselectedIcon());
@@ -628,8 +664,20 @@ public class CommonTabLayout extends FrameLayout implements ValueAnimator.Animat
         updateTabStyles();
     }
 
-    public void setTextUnselectColor(int textUnselectColor) {
-        this.mTextUnselectColor = textUnselectColor;
+    public void setTextSelectColor(int startColor, int endColor) {
+        this.mTextSelectColorStart = startColor;
+        this.mTextSelectColorEnd = endColor;
+        updateTabStyles();
+    }
+
+    public void setTextUnSelectColor(int startColor, int endColor) {
+        this.mTextUnSelectColorStart = startColor;
+        this.mTextUnSelectColorEnd = endColor;
+        updateTabStyles();
+    }
+
+    public void setTextUnSelectColor(int textUnSelectColor) {
+        this.mTextUnSelectColor = textUnSelectColor;
         updateTabStyles();
     }
 
@@ -765,8 +813,8 @@ public class CommonTabLayout extends FrameLayout implements ValueAnimator.Animat
         return mTextSelectColor;
     }
 
-    public int getTextUnselectColor() {
-        return mTextUnselectColor;
+    public int getTextUnSelectColor() {
+        return mTextUnSelectColor;
     }
 
     public int getTextBold() {

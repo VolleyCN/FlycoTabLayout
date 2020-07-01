@@ -4,9 +4,11 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.Rect;
+import android.graphics.Shader;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -14,6 +16,7 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.view.PagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.util.AttributeSet;
@@ -104,13 +107,17 @@ public class SlidingTabLayout extends HorizontalScrollView implements ViewPager.
     private float mTextsize;
     private float mTextUnselectSize;
     private int mTextSelectColor;
-    private int mTextUnselectColor;
+    private int mTextUnSelectColor;
     private int mTextBold;
     private boolean mTextAllCaps;
 
     private int mLastScrollX;
     private int mHeight;
     private boolean mSnapOnTabClick;
+    private int mTextSelectColorStart;
+    private int mTextSelectColorEnd;
+    private int mTextUnSelectColorEnd;
+    private int mTextUnSelectColorStart;
 
     public SlidingTabLayout(Context context) {
         this(context, null, 0);
@@ -173,7 +180,7 @@ public class SlidingTabLayout extends HorizontalScrollView implements ViewPager.
         mTextsize = ta.getDimension(R.styleable.SlidingTabLayout_tl_textsize, sp2px(13f));
         mTextUnselectSize = ta.getDimension(R.styleable.SlidingTabLayout_tl_textUnselectSize, sp2px(13f));
         mTextSelectColor = ta.getColor(R.styleable.SlidingTabLayout_tl_textSelectColor, Color.parseColor("#ffffff"));
-        mTextUnselectColor = ta.getColor(R.styleable.SlidingTabLayout_tl_textUnselectColor, Color.parseColor("#AAffffff"));
+        mTextUnSelectColor = ta.getColor(R.styleable.SlidingTabLayout_tl_textUnselectColor, Color.parseColor("#AAffffff"));
         mTextBold = ta.getInt(R.styleable.SlidingTabLayout_tl_textBold, TEXT_BOLD_NONE);
         mTextAllCaps = ta.getBoolean(R.styleable.SlidingTabLayout_tl_textAllCaps, false);
 
@@ -320,23 +327,41 @@ public class SlidingTabLayout extends HorizontalScrollView implements ViewPager.
     private void updateTabStyles() {
         for (int i = 0; i < mTabCount; i++) {
             View v = mTabsContainer.getChildAt(i);
-//            v.setPadding((int) mTabPadding, v.getPaddingTop(), (int) mTabPadding, v.getPaddingBottom());
-            TextView tv_tab_title = (TextView) v.findViewById(R.id.tv_tab_title);
+            TextView tv_tab_title = v.findViewById(R.id.tv_tab_title);
             if (tv_tab_title != null) {
-                tv_tab_title.setTextColor(i == mCurrentTab ? mTextSelectColor : mTextUnselectColor);
-                tv_tab_title.setTextSize(TypedValue.COMPLEX_UNIT_PX, i == mCurrentTab ? mTextsize : mTextUnselectSize);
-                tv_tab_title.setPadding((int) mTabPadding, 0, (int) mTabPadding, 0);
-                if (mTextAllCaps) {
-                    tv_tab_title.setText(tv_tab_title.getText().toString().toUpperCase());
-                }
-
-                if (mTextBold == TEXT_BOLD_BOTH) {
-                    tv_tab_title.getPaint().setFakeBoldText(true);
-                } else if (mTextBold == TEXT_BOLD_NONE) {
-                    tv_tab_title.getPaint().setFakeBoldText(false);
-                }
+                handlerTabText(tv_tab_title, i);
             }
         }
+    }
+
+    private void handlerTabText(TextView tv_tab_title, int i) {
+        handlerTabTextColorSize(tv_tab_title, i == mCurrentTab);
+        tv_tab_title.setPadding((int) mTabPadding, 0, (int) mTabPadding, 0);
+        if (mTextAllCaps) {
+            tv_tab_title.setText(tv_tab_title.getText().toString().toUpperCase());
+        }
+        if (mTextBold == TEXT_BOLD_BOTH) {
+            tv_tab_title.getPaint().setFakeBoldText(true);
+        } else if (mTextBold == TEXT_BOLD_NONE) {
+            tv_tab_title.getPaint().setFakeBoldText(false);
+        }
+    }
+
+    private void handlerTabTextColorSize(TextView tv_tab_title, boolean isSelect) {
+        if (isSelect) {
+            if (mTextSelectColorStart != 0 && mTextSelectColorEnd != 0) {
+                textColorLinearGradient(tv_tab_title, mTextSelectColorStart, mTextSelectColorEnd);
+            } else {
+                tv_tab_title.setTextColor(mTextSelectColor);
+            }
+        } else {
+            if (mTextUnSelectColorStart != 0 && mTextUnSelectColorEnd != 0) {
+                textColorLinearGradient(tv_tab_title, mTextUnSelectColorStart, mTextUnSelectColorEnd);
+            } else {
+                tv_tab_title.setTextColor(mTextUnSelectColor);
+            }
+        }
+        tv_tab_title.setTextSize(TypedValue.COMPLEX_UNIT_PX, isSelect ? mTextsize : mTextUnselectSize);
     }
 
     @Override
@@ -393,11 +418,9 @@ public class SlidingTabLayout extends HorizontalScrollView implements ViewPager.
         for (int i = 0; i < mTabCount; ++i) {
             View tabView = mTabsContainer.getChildAt(i);
             final boolean isSelect = i == position;
-            TextView tab_title = (TextView) tabView.findViewById(R.id.tv_tab_title);
-
+            TextView tab_title = tabView.findViewById(R.id.tv_tab_title);
             if (tab_title != null) {
-                tab_title.setTextColor(isSelect ? mTextSelectColor : mTextUnselectColor);
-                tab_title.setTextSize(TypedValue.COMPLEX_UNIT_PX, isSelect ? mTextsize : mTextUnselectSize);
+                handlerTabTextColorSize(tab_title, isSelect);
                 if (mTextBold == TEXT_BOLD_WHEN_SELECT) {
                     tab_title.getPaint().setFakeBoldText(isSelect);
                 }
@@ -663,8 +686,20 @@ public class SlidingTabLayout extends HorizontalScrollView implements ViewPager.
         updateTabStyles();
     }
 
-    public void setTextUnselectColor(int textUnselectColor) {
-        this.mTextUnselectColor = textUnselectColor;
+    public void setTextSelectColor(int startColor, int endColor) {
+        this.mTextSelectColorStart = startColor;
+        this.mTextSelectColorEnd = endColor;
+        updateTabStyles();
+    }
+
+    public void setTextUnSelectColor(int textUnselectColor) {
+        this.mTextUnSelectColor = textUnselectColor;
+        updateTabStyles();
+    }
+
+    public void setTextUnSelectColor(int startColor, int endColor) {
+        this.mTextUnSelectColorStart = startColor;
+        this.mTextUnSelectColorEnd = endColor;
         updateTabStyles();
     }
 
@@ -676,6 +711,19 @@ public class SlidingTabLayout extends HorizontalScrollView implements ViewPager.
     public void setTextAllCaps(boolean textAllCaps) {
         this.mTextAllCaps = textAllCaps;
         updateTabStyles();
+    }
+
+    public void textColorLinearGradient(TextView textView, int colorStart, int colorEnd) {
+        try {
+            LinearGradient mLinearGradient = new LinearGradient(0, 0,
+                    textView.getPaint().getTextSize() * textView.getText().length(), 0,
+                    ContextCompat.getColor(textView.getContext(), colorStart),
+                    ContextCompat.getColor(textView.getContext(), colorEnd), Shader.TileMode.CLAMP);
+            textView.getPaint().setShader(mLinearGradient);
+            textView.invalidate();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     public void setSnapOnTabClick(boolean snapOnTabClick) {
@@ -767,8 +815,8 @@ public class SlidingTabLayout extends HorizontalScrollView implements ViewPager.
         return mTextSelectColor;
     }
 
-    public int getTextUnselectColor() {
-        return mTextUnselectColor;
+    public int getTextUnSelectColor() {
+        return mTextUnSelectColor;
     }
 
     public int getTextBold() {
