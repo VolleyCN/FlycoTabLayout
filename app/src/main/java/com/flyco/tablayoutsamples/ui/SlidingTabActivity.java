@@ -107,7 +107,7 @@ public class SlidingTabActivity extends AppCompatActivity implements OnTabSelect
 //        });
 
 
-        tabLayout_1.setTextSelectColor(R.color.color_e7af88, R.color.colorAccent);
+        tabLayout_1.setTextSelectColor(R.color.color_e7af88, R.color.color_ffe7d6);
         tabLayout_1.setTextUnSelectColor(R.color.color_e8dbd0, R.color.color_e8dbd0);
     }
 
