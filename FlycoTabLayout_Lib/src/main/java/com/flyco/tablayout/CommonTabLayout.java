@@ -215,14 +215,12 @@ public class CommonTabLayout extends FrameLayout implements ValueAnimator.Animat
         ta.recycle();
     }
 
-    public void setTabData(ArrayList<CustomTabEntity> tabEntitys) {
+    public <T extends CustomTabEntity> void setTabData(ArrayList<T> tabEntitys) {
         if (tabEntitys == null || tabEntitys.size() == 0) {
             throw new IllegalStateException("TabEntitys can not be NULL or EMPTY !");
         }
-
         this.mTabEntitys.clear();
         this.mTabEntitys.addAll(tabEntitys);
-
         notifyDataSetChanged();
     }
 
